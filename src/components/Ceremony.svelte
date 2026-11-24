@@ -3,6 +3,7 @@
   import { artKey, hashColor } from '../lib/color.js';
   import { longDate, clock, depth } from '../lib/format.js';
   import { cardBlob } from '../lib/card.js';
+  import { track } from '../lib/analytics.js';
 
   let { core, art, onClose, onSurface } = $props();
 
@@ -46,6 +47,7 @@
       link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 4000);
       note = 'Card saved';
+      track('card_downloaded');
     } catch (e) {
       note = 'Could not make the card: ' + e.message;
     }
@@ -59,8 +61,10 @@
       const blob = await cardBlob(core, art);
       const file = new File([blob], fileName(), { type: 'image/png' });
       const data = { files: [file], title: 'Strata', text: `My first stream was ${b.track} by ${b.artist}, on ${longDate(b.ts)}.` };
-      if (navigator.canShare(data)) await navigator.share(data);
-      else await download();
+      if (navigator.canShare(data)) {
+        await navigator.share(data);
+        track('card_shared');
+      } else await download();
     } catch (e) {
       if (e.name !== 'AbortError') note = 'Sharing failed, try Download';
     }
