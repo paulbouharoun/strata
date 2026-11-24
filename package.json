@@ -1,0 +1,27 @@
+{
+  "name": "strata",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "synthetic": "node scripts/make-synthetic-export.mjs synthetic/my_spotify_data.zip",
+    "sample": "node scripts/build-sample.mjs",
+    "fixtures": "node scripts/make-fixtures.mjs synthetic/my_spotify_data.zip synthetic/",
+    "test": "node scripts/check-sources.mjs"
+  },
+  "devDependencies": {
+    "@sveltejs/vite-plugin-svelte": "^7.3.1",
+    "jpeg-js": "^0.4.4",
+    "svelte": "^5.57.3",
+    "vite": "^8.3.6"
+  },
+  "dependencies": {
+    "@fontsource/ibm-plex-mono": "^5.3.0",
+    "@fontsource/im-fell-english": "^5.3.0",
+    "jszip": "^3.10.2"
+  },
+  "description": "Your Spotify listening history as a geological core sample. Your listening, carbon-dated."
+}
