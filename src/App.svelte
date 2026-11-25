@@ -8,7 +8,8 @@
   let core = $state.raw(null);
   let art = $state({});
   let label = $state('');
-  let isSample = $state(false); // the globe's headlines are matched to the sample's listening
+  let isSample = $state(false);
+  let listening = $state.raw(null); // an upload's day-by-day listening, for its globe (never leaves the tab)
   let status = $state('');
   let error = $state('');
   let cancelArt = null;
@@ -25,6 +26,7 @@
       core = c;
       label = l || 'A sample life';
       isSample = true;
+      listening = null;
       enter();
       track('core_drilled', { source: 'sample', trigger: via === 'link' ? 'deep_link' : 'button', years: c.years.length });
     } catch {
@@ -59,6 +61,7 @@
         }
         art = {};
         core = m.core;
+        listening = m.listening;
         label = 'Your core';
         isSample = false;
         status = '';
@@ -97,5 +100,5 @@
 {#if view === 'surface'}
   <Surface {status} {error} onSample={drillSample} onUpload={drillUpload} {samplePromise} />
 {:else if core}
-  <Descent {core} {art} {label} onExit={exit} globe={isSample} />
+  <Descent {core} {art} {label} onExit={exit} globe={isSample || !!listening} {listening} />
 {/if}

@@ -10,7 +10,8 @@
     "synthetic": "node scripts/make-synthetic-export.mjs synthetic/my_spotify_data.zip",
     "sample": "node scripts/build-sample.mjs",
     "fixtures": "node scripts/make-fixtures.mjs synthetic/my_spotify_data.zip synthetic/",
-    "test": "node scripts/check-sources.mjs"
+    "test": "node scripts/check-sources.mjs",
+    "globe": "node scripts/build-globe.mjs"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",

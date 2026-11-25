@@ -4,7 +4,9 @@
 import { geoOrthographic, geoPath, geoGraticule10, geoDistance, geoInterpolate } from 'd3-geo';
 import { feature } from 'topojson-client';
 import land110 from 'world-atlas/land-110m.json';
-import { stopAll } from './player.svelte.js';
+import { stopAll, toggle as toggleAudio, player } from './player.svelte.js';
+import { ERA_LABEL } from './globe/pick.js';
+import { km } from './globe/origins.js';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const HOME = [33.89, 35.5]; // Beirut: a small brass cross marks home
@@ -45,7 +47,7 @@ const loadSpotify = () =>
 /**
  * @param {HTMLElement} root
  * @param {{ seasons: any[] }} data
- * @param {{ topOffset?: number }} [opts]
+ * @param {{ topOffset?: number, resolveMedia?: (needle: any) => Promise<any>, resolveOrigin?: (artist: string) => Promise<any> }} [opts]
  * @returns {() => void} destroy
  */
 export function mountOrrery(root, data, opts = {}) {
@@ -67,8 +69,31 @@ export function mountOrrery(root, data, opts = {}) {
   const canvas = root.querySelector('canvas');
   const latEl = root.querySelector('[data-lat]'), lonEl = root.querySelector('[data-lon]'), whenEl = root.querySelector('[data-when]');
 
+  let openPlayer = null; // the one open player (declared before the first paint)
+  // What a needle can play: its resolved media, or (for the precomputed sample) Spotify by ID.
+  const mediaOf = (n) => n?.media || (n?.src === 'spotify' && n.id ? { url: n.cover, embed: { kind: 'spotify', id: n.id } } : n?.cover ? { url: n.cover } : null);
+  const SERVICE = { spotify: 'Spotify', apple: 'Apple Music', deezer: 'Deezer', youtube: 'YouTube', tidal: 'TIDAL' };
+
+  function liHtml(ev) {
+    const n = ev.needle;
+    const m = !ev.grave ? mediaOf(n) : null;
+    // The song you had on that day, as a sleeve under the date; ▶ plays it on the service you heard it on.
+    const sleeve = m?.url ? `<img class="sleeve" src="${esc(m.url)}" alt="" width="52" height="52" loading="lazy" title="${esc(n.track)} by ${esc(n.artist)}">` : '';
+    const playable = m && (m.preview || m.embed);
+    const where = SERVICE[m?.embed?.kind] || SERVICE[n?.src] || 'its service';
+    const listen = playable ? `<button class="listen" aria-expanded="false" aria-label="Listen to ${esc(n.track)} on ${where}" title="Listen on ${where}">▶</button>` : '';
+    return `<span class="d mono"><span class="date">${ev.cited ? '<small>Rep.</small> ' : ''}${String(ev.day).padStart(2, '0')} ${MONTHS[ev.month]}</span>${sleeve}${listen}</span>
+      <span class="t">${esc(ev.text.length > 170 ? ev.text.slice(0, 167) + '…' : ev.text)}<span class="w mono">${ev.where ? esc(ev.where) + ' · ' : ''}${fmtCoord(ev.coord)}</span>${readLinks(ev)}<span class="link mono">${linkLine(ev)}</span><span class="player" hidden></span></span>`;
+  }
+  function paint(it) {
+    if (openPlayer?.li === it.li) return; // don't tear down a playing player
+    it.li.innerHTML = liHtml(it.ev);
+    it.li.querySelector('.listen')?.addEventListener('click', (e) => toggleListen(e.currentTarget, it));
+  }
+
   const items = [];
   for (const s of seasons) {
+    const era = s.era || 'ai';
     const sec = document.createElement('section');
     sec.className = 'season';
     sec.dataset.key = s.key;
@@ -79,51 +104,93 @@ export function mountOrrery(root, data, opts = {}) {
         <h2>${s.name} <small>${s.year}</small></h2>
         <h3 class="mono">You were listening to</h3>
         <ul class="music">${s.artists.map((a) => `<li>${esc(a)}</li>`).join('')}</ul>
-        <p class="wonder">What happened in tech &amp; AI while you were listening…</p>
+        <p class="wonder">What happened in ${ERA_LABEL[era].replace('&', '&amp;')} while you were listening…</p>
         <ol class="events"></ol>
-        <p class="credit mono">Headlines from Wikipedia’s <a href="https://en.wikipedia.org/wiki/${s.year}_in_artificial_intelligence" target="_blank" rel="noopener">AI</a>, computing and science timelines (CC BY-SA 4.0) · ◆ AI · places from Wikidata (CC0) · origins from MusicBrainz</p>
+        <p class="credit mono">Headlines from Wikipedia’s computing, ${era === 'tech' ? '' : era === 'ml' ? 'machine learning, ' : 'AI, '}science and year timelines (CC BY-SA 4.0)${era === 'tech' ? '' : ` · ◆ ${era === 'ml' ? 'machine learning' : 'AI'}`} · places from Wikidata (CC0) · origins from MusicBrainz</p>
       </div>`;
     const ol = sec.querySelector('ol');
     for (const ev of s.headlines) {
       const li = document.createElement('li');
-      li.className = `${ev.category === 'ai' ? 'ai' : ''}${ev.grave ? ' grave' : ''}`;
-      // The song you had on that day, as a sleeve under the date (never beside a grave headline).
-      const n = ev.needle;
-      const sleeve = n?.cover && !ev.grave ? `<img class="sleeve" src="${esc(n.cover)}" alt="" width="44" height="44" loading="lazy" title="${esc(n.track)} by ${esc(n.artist)}">` : '';
-      const listen = n?.id && !ev.grave ? `<button class="listen" data-id="${esc(n.id)}" aria-expanded="false" aria-label="Listen to ${esc(n.track)} on Spotify" title="Listen on Spotify">▶</button>` : '';
-      li.innerHTML = `<span class="d mono"><span class="date">${ev.cited ? '<small>Rep.</small> ' : ''}${String(ev.day).padStart(2, '0')} ${MONTHS[ev.month]}</span>${sleeve}${listen}</span>
-        <span class="t">${esc(ev.text.length > 170 ? ev.text.slice(0, 167) + '…' : ev.text)}<span class="w mono">${ev.where ? esc(ev.where) + ' · ' : ''}${fmtCoord(ev.coord)}</span>${readLinks(ev)}<span class="link mono">${linkLine(ev)}</span><span class="player" hidden></span></span>`;
+      li.className = `${era !== 'tech' && ev.category === era ? 'of-era' : ''}${ev.grave ? ' grave' : ''}`;
       li.addEventListener('click', (e) => {
         if (!e.target.closest('a, button, .player')) li.scrollIntoView({ behavior: 'smooth', block: 'center' });
       });
-      li.querySelector('.listen')?.addEventListener('click', (e) => toggleListen(e.currentTarget, li));
       ol.append(li);
-      items.push({ ev, li, key: s.key });
+      const it = { ev, li, key: s.key };
+      items.push(it);
+      paint(it);
     }
     yearsEl.append(sec);
   }
 
+  // Uploads: covers, players and arcs are looked up as each season comes near the screen.
+  const io = new IntersectionObserver(
+    (entries) => {
+      for (const e of entries) {
+        if (!e.isIntersecting) continue;
+        fillSeason(e.target.dataset.key);
+      }
+    },
+    { rootMargin: '100% 0px' }
+  );
+  // Also driven by scrolling (observers can be paused in background tabs): the season in view and the next.
+  const filled = new Set();
+  function fillSeason(key) {
+    if (!key || filled.has(key) || !(opts.resolveMedia || opts.resolveOrigin)) return;
+    filled.add(key);
+    for (const it of items.filter((x) => x.key === key)) fill(it);
+  }
+  if (opts.resolveMedia || opts.resolveOrigin) for (const sec of yearsEl.children) io.observe(sec);
+  async function fill(it) {
+    const n = it.ev.needle;
+    if (!n || it.ev.grave) return;
+    const jobs = [];
+    if (opts.resolveMedia && !n.media && !n.cover)
+      jobs.push(opts.resolveMedia(n).then((m) => { if (m) { n.media = m; paint(it); } }));
+    if (opts.resolveOrigin && !n.origin && it.ev.coord)
+      jobs.push(opts.resolveOrigin(n.artist).then((o) => {
+        if (!o) return;
+        n.origin = o;
+        n.km = km(o.coord, it.ev.coord);
+        paint(it);
+        if (active === it) setTarget(it.ev); // re-frame to show the new arc
+      }));
+    await Promise.all(jobs).catch(() => {});
+  }
+
   // ── Listen ────────────────────────────────────────────────────────────────────────
-  let openPlayer = null;
+  // Spotify and YouTube play inside their own players; Apple Music and Deezer clips use the app's audio.
   function closePlayer() {
     if (!openPlayer) return;
     openPlayer.controller?.destroy?.();
+    if (openPlayer.audioKey && player.key === openPlayer.audioKey) stopAll();
     openPlayer.host.innerHTML = '';
     openPlayer.host.hidden = true;
     openPlayer.btn.setAttribute('aria-expanded', 'false');
     openPlayer.btn.textContent = '▶';
     openPlayer = null;
   }
-  async function toggleListen(btn, li) {
+  async function toggleListen(btn, it) {
     if (openPlayer?.btn === btn) return closePlayer();
     closePlayer();
     stopAll(); // the app's own previews
-    const host = li.querySelector('.player');
-    const id = btn.dataset.id;
-    openPlayer = { btn, host, controller: null };
-    host.hidden = false;
+    const m = mediaOf(it.ev.needle);
+    const host = it.li.querySelector('.player');
+    openPlayer = { btn, host, li: it.li, controller: null, audioKey: null };
     btn.setAttribute('aria-expanded', 'true');
     btn.textContent = '×';
+    if (m?.preview) {
+      // A 30-second clip from Apple Music or Deezer: no widget, the button is the player.
+      openPlayer.audioKey = `globe:${it.ev.date}:${it.ev.needle.track}`;
+      toggleAudio(openPlayer.audioKey, m.preview);
+      return;
+    }
+    host.hidden = false;
+    if (m?.embed?.kind === 'youtube') {
+      host.innerHTML = `<iframe class="yt" src="https://www.youtube-nocookie.com/embed/${esc(m.embed.id)}?autoplay=1&playsinline=1&rel=0" allow="autoplay; encrypted-media; picture-in-picture" title="YouTube player"></iframe>`;
+      return;
+    }
+    const id = m.embed.id;
     try {
       const api = await loadSpotify();
       if (openPlayer?.btn !== btn) return;
@@ -180,6 +247,9 @@ export function mountOrrery(root, data, opts = {}) {
     const { best, key } = readingLine();
     if (key !== activeKey) {
       activeKey = key;
+      fillSeason(key);
+      const next = yearsEl.querySelector(`[data-key="${key}"]`)?.nextElementSibling;
+      fillSeason(next?.dataset.key);
       const sec = key && yearsEl.querySelector(`[data-key="${key}"]`);
       eraEl.textContent = sec ? sec.dataset.label : '—';
     }
@@ -262,7 +332,7 @@ export function mountOrrery(root, data, opts = {}) {
       const [x, y] = proj(ll);
       const on = it === active;
       ctx.beginPath(); ctx.arc(x, y, on ? 4 : 2.2, 0, 7);
-      ctx.fillStyle = it.ev.category === 'ai' ? '#a9823f' : on ? '#2a2119' : 'rgba(42,33,25,.55)';
+      ctx.fillStyle = it.li.classList.contains('of-era') ? '#a9823f' : on ? '#2a2119' : 'rgba(42,33,25,.55)';
       ctx.fill();
       if (on) {
         ctx.beginPath(); ctx.arc(x, y, it.ev.grave || reduce ? 9 : 6 + pulse * 10, 0, 7);
@@ -306,6 +376,7 @@ export function mountOrrery(root, data, opts = {}) {
     cancelAnimationFrame(raf);
     ro.disconnect();
     removeEventListener('scroll', onScroll);
+    io.disconnect();
     closePlayer();
     root.innerHTML = '';
   };

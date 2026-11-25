@@ -10,6 +10,7 @@ Your entire listening history (Spotify, Apple Music, Deezer, YouTube Music or TI
 - **Colour from the sleeves.** Covers come from the same service as the track (Spotify oEmbed, iTunes, Deezer, YouTube thumbnails); dominant colours are pulled from the art and pushed toward stone. Without art, colours are hashed from artist names.
 - **Hear the era, from the service you heard it on.** Each stratum's three characteristic tracks play through the platform they were streamed on: Spotify's own player (by the exact track ID in your export), Apple Music's and Deezer's 30-second clips, YouTube's player. TIDAL offers no keyless lookup, so its tracks link out instead.
 - **Drag through time.** Grab the ruler or the core to move the rock; drag the depth readout to race through the whole core.
+- **Another view: the globe.** "Fancy another view?" under the title swaps the core for a globe, in place. Each season (three months) shows its top artists and three tech headlines from Wikipedia, each tied to what you were listening to that day: the song (its cover, playable on the service you heard it on), an arc from the artist's home town to where the news happened, and links to the story. Headlines follow the vocabulary of their era: plain tech until mid-2012, machine learning from AlexNet (autumn 2012), AI from ChatGPT (autumn 2022). It works for every upload, computed in the browser; headlines cover 2010 onward.
 - **Bedrock.** The page goes still, the case lights up, and you can download a 1080×1350 share card with your first stream and your whole cross-section.
 
 ## Run it
@@ -44,6 +45,16 @@ npm run sample -- private/paul_spotify_data.zip --label "Paul’s history"
 The sample on display is the real listening history of [Paul Bouharoun](https://paulbouharoun.com), who built Strata: ten strata from 2017 to 2026, down to bedrock on 10 January 2018. The raw export lives in `private/`, which is git-ignored and never published.
 
 `npm run synthetic` writes a realistic fake export in Spotify's exact format, used by the tests below.
+
+## The globe
+
+`public/headlines.json`: 928 dated tech, ML and AI headlines (2010–2026), built from Wikipedia's year, science, computing, AI and machine-learning pages and placed with Wikidata (see `explorations/globe/`). In the browser, `src/lib/globe/days.js` turns an upload into day-by-day listening, `pick.js` chooses three headlines a season (notability × how much you listened that day × shared words, one era headline per season, grave stories never get a song), and covers, players and artist home towns (MusicBrainz) are looked up as seasons come into view.
+
+The sample's picks are precomputed with the same code:
+
+```bash
+npm run globe -- private/paul_spotify_data.zip
+```
 
 ## Tests
 

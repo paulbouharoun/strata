@@ -99,3 +99,20 @@ export function resolveArt(core, onArt) {
   })();
   return () => (cancelled = true);
 }
+
+/**
+ * Cover + preview for one track from its own service, through the same cache as the core's art.
+ * Used by the globe for "the song you had on that day".
+ */
+export async function mediaFor(t) {
+  const cache = loadCache();
+  const k = `${t.src || 'apple'}:${t.id || artKey(t.track, t.artist)}`;
+  if (k in cache) return cache[k];
+  const entry = await resolveMedia(t, net).catch(() => null);
+  if (entry) {
+    const c = loadCache();
+    c[k] = entry;
+    saveCache(c);
+  }
+  return entry;
+}

@@ -29,3 +29,4 @@ scripts/.art-cache.json
 .env*
 private/
 scripts/.media-cache.json
+scripts/.origins-cache.json

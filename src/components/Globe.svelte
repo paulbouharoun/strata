@@ -1,21 +1,51 @@
 <script>
-  // The other view of the same history: a globe and three tech & AI headlines a season.
-  // Code, map and data load only the first time someone switches to it.
+  // The other view of the same history: a globe and three headlines a season, tied to the listening.
+  // Code, map and headlines load only the first time someone switches to it.
+  //   Paul's sample: precomputed picks (/globe.json).
+  //   Uploads: picked here in the browser from the upload's day-by-day listening; covers, players
+  //   and arcs are looked up from each track's own service as seasons come into view.
   import { onMount } from 'svelte';
 
+  let { listening = null } = $props();
   let host;
   let status = $state('Unwinding the globe…');
+
+  const store = (key) => ({
+    get(k) {
+      try { const v = JSON.parse(localStorage.getItem(key) || '{}')[k]; return v; } catch { return undefined; }
+    },
+    set(k, v) {
+      try { const all = JSON.parse(localStorage.getItem(key) || '{}'); all[k] = v; localStorage.setItem(key, JSON.stringify(all)); } catch {}
+    },
+  });
 
   onMount(() => {
     let destroy = null;
     let alive = true;
-    Promise.all([import('../lib/orrery.js'), fetch('/globe.json').then((r) => r.json())])
-      .then(([{ mountOrrery }, data]) => {
-        if (!alive) return;
-        status = '';
-        destroy = mountOrrery(host, data, { topOffset: 64 });
-      })
-      .catch(() => (status = 'The globe failed to load. Try again later.'));
+    (async () => {
+      const { mountOrrery } = await import('../lib/orrery.js');
+      let data, opts = { topOffset: 64 };
+      if (listening) {
+        const [{ pickSeasons }, { originLookup }, { mediaFor }, headlines] = await Promise.all([
+          import('../lib/globe/pick.js'),
+          import('../lib/globe/origins.js'),
+          import('../lib/art-runtime.js'),
+          fetch('/headlines.json').then((r) => r.json()),
+        ]);
+        data = pickSeasons(listening, headlines);
+        const origin = originLookup({ fetchJson: (u) => fetch(u).then((r) => (r.ok ? r.json() : null)), cache: store('strata.origins.v1') });
+        opts.resolveMedia = (n) => mediaFor({ track: n.track, artist: n.artist, src: n.src, id: n.id });
+        opts.resolveOrigin = origin;
+        if (!data.seasons.length) throw new Error('empty');
+      } else {
+        data = await fetch('/globe.json').then((r) => r.json());
+      }
+      if (!alive) return;
+      status = '';
+      destroy = mountOrrery(host, data, opts);
+    })().catch((e) => {
+      status = e.message === 'empty' ? 'No headlines for these years yet: they start in 2010.' : 'The globe failed to load. Try again later.';
+    });
     return () => {
       alive = false;
       destroy?.();
@@ -62,8 +92,9 @@
   .orrery :global(.d) { font-size: 10px; color: var(--ink-soft); padding-top: 3px; text-transform: uppercase; }
   .orrery :global(.d .date) { display: block; white-space: nowrap; }
   .orrery :global(.sleeve) { display: block; width: 52px; height: 52px; margin-top: 8px; object-fit: cover; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 2px 3px 6px rgba(0, 0, 0, 0.2); }
-  .orrery :global(.d small) { font-size: 8px; letter-spacing: 0.06em; }
-  .orrery :global(li.ai .date::after) { content: ' ◆'; color: var(--brass); }
+  .orrery :global(.d small) { display: block; font-size: 8px; letter-spacing: 0.06em; }
+  .orrery :global(li.of-era .date::after) { content: ' ◆'; color: var(--brass); }
+  .orrery :global(.player iframe.yt) { height: auto; aspect-ratio: 16 / 9; border-radius: 4px; }
   .orrery :global(li.grave .date::before) { content: '— '; }
   .orrery :global(.t) { font-size: 15px; line-height: 1.3; min-width: 0; }
   .orrery :global(.w) { display: block; font-size: 9.5px; color: var(--ink-soft); margin-top: 3px; }

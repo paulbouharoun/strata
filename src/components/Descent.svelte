@@ -9,7 +9,7 @@
   import { laminae } from '../lib/palette.js';
   import { stop } from '../lib/player.svelte.js';
 
-  let { core, art, label, onExit, globe = false } = $props();
+  let { core, art, label, onExit, globe = false, listening = null } = $props();
 
   // Two views of the same history: the core (default) or the globe, switched in place under the title.
   let view = $state('core');
@@ -302,7 +302,7 @@
   </section>
 
   {#if view === 'globe'}
-    <Globe />
+    <Globe {listening} />
   {:else}
   {#each core.years as year, i (year.year)}
     <Stratum {year} index={i} count={core.years.length} {art} height={heights[i]} bind:el={sectionEls[i]} />
