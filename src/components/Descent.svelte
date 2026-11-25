@@ -341,7 +341,7 @@
   :global(body.dragging), :global(body.dragging) * { cursor: grabbing !important; user-select: none !important; }
   .readout .w { opacity: 0.75; font-size: 10px; }
 
-  .collar { min-height: 78svh; display: flex; flex-direction: column; justify-content: flex-end; padding: 110px 0 48px; border-bottom: 1px solid var(--line); }
+  .collar { min-height: 78svh; display: flex; flex-direction: column; justify-content: flex-end; padding: 110px 0 48px; }
   .kicker { margin: 0 0 10px; color: var(--ink-soft); }
   h1 { font-weight: 400; font-size: clamp(54px, 11vw, 120px); line-height: 0.9; margin: 0; }
   .sub { font-size: 21px; color: var(--ink-soft); margin: 14px 0 28px; }

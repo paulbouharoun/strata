@@ -140,8 +140,19 @@
   .ruler {
     position: relative;
     border-right: 1px solid var(--line);
-    background: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 24px) right top / 8px 100% no-repeat;
+    /* Minor ticks every 24px, starting one step down so nothing doubles the year line. */
+    background: repeating-linear-gradient(to bottom, var(--line) 0 1px, transparent 1px 24px) right 0 top 24px / 8px calc(100% - 24px) no-repeat;
   }
+  /* A new year starts with a single long line across the whole ruler. */
+  .ruler::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    border-top: 1px solid var(--meter-ink);
+  }
+  .tick.lead::after { display: none; }
   .tick {
     position: absolute;
     right: 10px;
