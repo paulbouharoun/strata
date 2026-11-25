@@ -288,7 +288,7 @@
 
 <style>
   :global(:root) {
-    --ruler-w: 64px;
+    --ruler-w: 96px;
     --core-w: min(300px, 30vw);
     --line: rgba(42, 33, 25, 0.35);
     --meter-ink: rgba(42, 33, 25, 0.75);
@@ -336,7 +336,7 @@
   .readout:hover, :global(body.dragging) .readout { background: rgba(25, 20, 16, 0.95); }
   .readout:focus-visible { outline: 2px solid #d9b46a; outline-offset: 2px; }
   .grip { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); color: #d9b46a; font-size: 12px; }
-  .readout .d { font-size: 13px; }
+  .readout .d { font-size: 13px; white-space: nowrap; }
   .descent :global(.ruler), .descent :global(.core), .bcore { cursor: grab; }
   :global(body.dragging), :global(body.dragging) * { cursor: grabbing !important; user-select: none !important; }
   .readout .w { opacity: 0.75; font-size: 10px; }
@@ -367,7 +367,7 @@
   .foot a { color: inherit; }
 
   @media (max-width: 560px) {
-    :global(:root) { --ruler-w: 38px; --core-w: 27vw; }
+    :global(:root) { --ruler-w: 44px; --core-w: 26vw; }
     .what { display: none; }
     .bar { padding-top: max(12px, env(safe-area-inset-top)); }
     .sub { font-size: 18px; }

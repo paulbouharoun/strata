@@ -11,6 +11,18 @@
   const depthT = $derived(count > 1 ? index / (count - 1) : 0);
   const palette = $derived(strataPalette(year, art, depthT));
   const lam = $derived(laminae(year));
+  // Month labels down the ruler, skipping any that would collide with the one above (thin, quiet months).
+  const ticks = $derived.by(() => {
+    const out = [];
+    let last = -Infinity;
+    for (const l of lam) {
+      const y = l.from * height;
+      if (y - last < 16) continue;
+      out.push(l);
+      last = y;
+    }
+    return out;
+  });
   const ordinal = $derived(count - index); // the oldest layer is stratum I
 
   let canvas;
@@ -45,8 +57,9 @@
 
 <section class="stratum" bind:this={el} style:height="{height}px" aria-labelledby="era-{year.year}">
   <div class="ruler" aria-hidden="true">
-    {#each lam as l (l.month)}
-      <span class="tick mono" style:top="{l.from * 100}%">{l.month === 11 ? year.year : MONTHS[l.month]}</span>
+    <span class="year mono">{year.year}</span>
+    {#each ticks as l, i (l.month)}
+      <span class="tick mono" class:lead={i === 0} style:top="{l.from * 100}%">{MONTHS[l.month]}</span>
     {/each}
   </div>
 
@@ -138,6 +151,17 @@
     letter-spacing: 0.06em;
     white-space: nowrap;
   }
+  /* The year sits on the same line as the stratum's first month, set larger and bold. */
+  .year {
+    position: absolute;
+    top: 0;
+    right: 44px;
+    transform: translateY(-3px);
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: var(--meter-ink);
+  }
   .tick::after {
     content: '';
     position: absolute;
@@ -214,5 +238,7 @@
     .by { font-size: 12.5px; }
     .first { font-size: 13.5px; }
     .tick { font-size: 8.5px; right: 8px; }
+    .tick.lead { display: none; } /* no room beside the year on phones */
+    .year { right: 8px; font-size: 11.5px; transform: translateY(-2px); }
   }
 </style>
