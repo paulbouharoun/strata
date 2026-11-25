@@ -29,7 +29,7 @@ npm run dev
 | YouTube Music | [takeout.google.com](https://takeout.google.com/) → YouTube and YouTube Music → history | `watch-history.html` or `.json`, entries headed “YouTube Music”. Takeout has no play durations, so each play is estimated at 3½ minutes and depths are marked ≈. |
 | TIDAL | No self-serve download: email TIDAL support for your personal data | `streaming.csv` (TRACK rows; local times converted from each row's time zone) |
 
-Drop the file(s) on **Bring your own core**, as delivered.
+Drop the file(s) on **Bring your own**, as delivered.
 
 ## The sample core
 

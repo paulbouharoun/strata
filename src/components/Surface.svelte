@@ -88,7 +88,7 @@
 
     <div class="actions">
       <button class="btn primary" onclick={onSample} disabled={!!status}>
-        <span>Drill Paul’s core</span><span aria-hidden="true">↓</span>
+        <span>Explore Paul’s history</span><span aria-hidden="true">↓</span>
       </button>
 
       <label
@@ -99,12 +99,12 @@
         ondrop={(e) => { e.preventDefault(); dragging = false; pick(e.dataTransfer.files); }}
       >
         <input bind:this={input} type="file" accept=".zip,.json,.csv,.xlsx,.html,application/zip,application/json,text/csv,text/html" multiple class="sr-only" onchange={(e) => pick(e.currentTarget.files)} disabled={!!status} />
-        <span>Bring your own core</span><span class="mono small">export</span>
+        <span>Bring your own</span><span class="mono small">export</span>
       </label>
     </div>
     <p class="whose">
       The specimen on display is the real listening history of
-      <a href="https://paulbouharoun.com" target="_blank" rel="noreferrer">Paul Bouharoun</a>, who built Strata. Bring your own to drill yours.
+      <a href="https://paulbouharoun.com" target="_blank" rel="noreferrer">Paul Bouharoun</a>, who built Strata. Bring your own export to explore yours.
     </p>
 
     {#if status}
