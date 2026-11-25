@@ -38,7 +38,7 @@ Drop the file(s) on **Bring your own**, as delivered.
 To rebuild it from an export:
 
 ```bash
-npm run sample -- private/paul_spotify_data.zip --label "Paul's core"
+npm run sample -- private/paul_spotify_data.zip --label "Paul’s history"
 ```
 
 The sample on display is the real listening history of [Paul Bouharoun](https://paulbouharoun.com), who built Strata: ten strata from 2017 to 2026, down to bedrock on 10 January 2018. The raw export lives in `private/`, which is git-ignored and never published.
