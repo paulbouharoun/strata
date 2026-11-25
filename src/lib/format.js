@@ -24,5 +24,5 @@ export function eraName(year) {
   return `The ${bare(a.name)} Beds`;
 }
 
-/** Specimen-coordinate style: −1,204.3 m */
-export const depth = (m) => (m < 0.05 ? '0.0 m' : `−${num(m, 1)} m`);
+/** Depth into the core, in hours listened (counted down from today): 1,204.3 h */
+export const depth = (h, d = 1) => `${num(h < 0.05 ? 0 : h, d)} h`;

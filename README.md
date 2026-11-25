@@ -6,7 +6,7 @@ Your entire listening history (Spotify, Apple Music, Deezer, YouTube Music or TI
 
 - **Pure static site.** Your export is parsed in the browser (JSZip in a Web Worker). No backend, no OAuth, no API quotas.
 - **Five services, one core.** Drop exports from several services together and they merge; bedrock is the earliest stream across all of them.
-- **One metre per hour.** Each year's thickness is proportional to how much you listened; each month inside it is a lamina coloured by that month's top artist.
+- **Hours become rock.** Depth is measured in hours listened; each year's thickness is proportional to how much you listened; each month inside it is a lamina coloured by that month's top artist.
 - **Colour from the sleeves.** Each era's top tracks get their cover art from the iTunes Search API (free, no key, CORS-enabled). Dominant colours are pulled from the art and pushed toward stone. Without art, colours are hashed from artist names.
 - **Hear the era.** Each stratum's three characteristic tracks play a 30-second iTunes preview.
 - **Drag through time.** Grab the ruler or the core to move the rock; drag the depth readout to race through the whole core.

@@ -105,7 +105,7 @@
     <p class="artist">{b.artist}{#if b.album}<span class="album">{' · '}<em>{b.album}</em></span>{/if}</p>
     <dl class="mono meta">
       <div><dt>Deposited</dt><dd>{longDate(b.ts)}{#if b.precision !== 'day'}, {clock(b.ts)}{/if}</dd></div>
-      <div><dt>Recovered at</dt><dd>{depth(b.depth)}</dd></div>
+      <div><dt>Recovered at</dt><dd>{depth(b.depth, 0)} deep</dd></div>
       <div><dt>Duration</dt><dd>{mins}:{secs}</dd></div>
     </dl>
     <p class="caption"><em>The first track you ever streamed. Everything above was laid down after it.</em></p>

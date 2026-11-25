@@ -62,7 +62,7 @@
       </header>
       <h2 id="era-{year.year}">{eraName(year)}</h2>
       <dl class="coords mono">
-        <div><dt>Depth</dt><dd>{depth(year.depthTop)} → {depth(year.depthBottom).slice(1)}</dd></div>
+        <div><dt>Depth, hours</dt><dd>{num(year.depthTop, 0)} → {num(year.depthBottom, 0)}</dd></div>
         <div><dt>Streams</dt><dd>{num(year.streams)}</dd></div>
         <div><dt>Hours</dt><dd>{num(hours, 0)}</dd></div>
         <div><dt>Artists</dt><dd>{num(year.artistCount)}</dd></div>

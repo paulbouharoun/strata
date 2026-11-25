@@ -238,13 +238,13 @@
     aria-valuemin="0"
     aria-valuemax={Math.round(core.totals.hours)}
     aria-valuenow={Math.round(readout.depth)}
-    aria-valuetext="{depth(readout.depth)}, {readout.when}"
+    aria-valuetext="{depth(readout.depth, 0)} deep, {readout.when}"
     title="Drag to travel through time"
     onpointerdown={scrub}
     onkeydown={scrubKey}
   >
     <span class="grip" aria-hidden="true">⇕</span>
-    <span class="d">{depth(readout.depth)}</span>
+    <span class="d">{depth(readout.depth)} deep</span>
     <span class="w">{readout.when}</span>
   </div>
   <div class="hair"></div>
@@ -255,7 +255,7 @@
   <section class="collar">
     <p class="mono kicker">Ground level · {longDate(core.range.end)}</p>
     <h1>{label}</h1>
-    <p class="sub"><em>{core.years.length} strata. {core.estimated ? '≈' : ''}{num(core.totals.hours, 0)} metres of listening.<br />One metre per hour{core.estimated ? ', estimated' : ''}.</em></p>
+    <p class="sub"><em>{core.years.length} strata. {core.estimated ? '≈' : ''}{num(core.totals.hours, 0)} hours of listening{core.estimated ? ', estimated' : ''}.<br />Every hour laid down a little more rock.</em></p>
     {#if core.source && core.source !== 'unknown'}<p class="mono src">Drilled from {core.source}</p>{/if}
     <p class="mono cue">Descend <span aria-hidden="true">↓</span></p>
   </section>
@@ -271,7 +271,7 @@
       <div class="fossil" bind:this={fossilEl}></div>
     </div>
     <div class="bplacard">
-      <p class="mono">Bedrock · {depth(core.totals.hours)}</p>
+      <p class="mono">Bedrock · {depth(core.totals.hours, 0)} deep</p>
       <p class="btitle">Below this, silence.</p>
       <button class="mono again" onclick={() => (ceremony = true)}>View the specimen</button>
     </div>

@@ -109,7 +109,7 @@ export async function renderCard(core, art) {
   ctx.font = `400 18px ${MONO}`;
   ctx.fillStyle = 'rgba(233,223,204,0.55)';
   ctx.textAlign = 'right';
-  ctx.fillText(`CORE ${core.years.at(-1)?.year ?? ''}–${core.years[0]?.year ?? ''} · ${num(core.totals.hours, 0)} M`, W - 90, 92);
+  ctx.fillText(`CORE ${core.years.at(-1)?.year ?? ''}–${core.years[0]?.year ?? ''} · ${num(core.totals.hours, 0)} HOURS`, W - 90, 92);
   ctx.textAlign = 'left';
 
   // Text column.
@@ -177,7 +177,7 @@ export async function renderCard(core, art) {
   // Stats + footer.
   ctx.font = `400 19px ${MONO}`;
   ctx.fillStyle = 'rgba(233,223,204,0.7)';
-  const stats = [`${core.estimated ? '≈' : ''}${num(core.totals.hours, 0)} m of listening`, `${core.years.length} strata`, `${num(core.totals.artists)} artists`];
+  const stats = [`${core.estimated ? '≈' : ''}${num(core.totals.hours, 0)} hours of listening`, `${core.years.length} strata`, `${num(core.totals.artists)} artists`];
   ctx.fillText(stats.join('  ·  '), tx, bottom - 6);
   ctx.fillStyle = 'rgba(233,223,204,0.4)';
   ctx.font = `400 17px ${MONO}`;

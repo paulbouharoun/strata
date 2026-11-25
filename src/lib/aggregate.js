@@ -84,7 +84,7 @@ export function aggregate(plays, source = 'unknown') {
       };
     });
 
-  // Depth: one metre per hour listened, measured down from the surface (today).
+  // Depth: hours listened, counted down from the surface (today).
   let depth = 0;
   for (const y of years) {
     y.depthTop = depth;
