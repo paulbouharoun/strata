@@ -8,6 +8,7 @@
   let core = $state.raw(null);
   let art = $state({});
   let label = $state('');
+  let isSample = $state(false); // the globe's headlines are matched to the sample's listening
   let status = $state('');
   let error = $state('');
   let cancelArt = null;
@@ -23,6 +24,7 @@
       art = sampleArt || {};
       core = c;
       label = l || 'A sample life';
+      isSample = true;
       enter();
       track('core_drilled', { source: 'sample', trigger: via === 'link' ? 'deep_link' : 'button', years: c.years.length });
     } catch {
@@ -58,6 +60,7 @@
         art = {};
         core = m.core;
         label = 'Your core';
+        isSample = false;
         status = '';
         cancelArt?.();
         if (fetchArt) cancelArt = resolveArt(core, (k, entry) => (art[k] = entry));
@@ -94,5 +97,5 @@
 {#if view === 'surface'}
   <Surface {status} {error} onSample={drillSample} onUpload={drillUpload} {samplePromise} />
 {:else if core}
-  <Descent {core} {art} {label} onExit={exit} />
+  <Descent {core} {art} {label} onExit={exit} globe={isSample} />
 {/if}

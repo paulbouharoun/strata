@@ -2,13 +2,28 @@
   import { onMount } from 'svelte';
   import Stratum from './Stratum.svelte';
   import Ceremony from './Ceremony.svelte';
+  import Globe from './Globe.svelte';
   import { drawBedrock } from '../lib/rock.js';
   import { mix, luminance } from '../lib/color.js';
   import { MONTHS, num, depth, longDate } from '../lib/format.js';
   import { laminae } from '../lib/palette.js';
   import { stop } from '../lib/player.svelte.js';
 
-  let { core, art, label, onExit } = $props();
+  let { core, art, label, onExit, globe = false } = $props();
+
+  // Two views of the same history: the core (default) or the globe, switched in place under the title.
+  let view = $state('core');
+  function switchView(v) {
+    if (v === view) return;
+    stop();
+    view = v;
+    // Keep the switch in sight: land at the top of the new view, just under the title.
+    requestAnimationFrame(() => {
+      const c = document.querySelector('.collar');
+      if (c && scrollY > c.offsetTop + c.offsetHeight - 80) scrollTo(0, c.offsetTop + c.offsetHeight - 80);
+      onScroll();
+    });
+  }
 
   // Layer thickness: a floor so every year can hold its placard, plus a share ∝ hours listened.
   const vh = typeof window !== 'undefined' ? window.innerHeight : 800;
@@ -17,8 +32,8 @@
   const lams = core.years.map(laminae);
 
   let sectionEls = $state([]);
-  let bedrockCanvas;
-  let fossilEl;
+  let bedrockCanvas = $state();
+  let fossilEl = $state();
   let dustCanvas;
 
   let readout = $state({ depth: 0, when: 'Surface', year: null });
@@ -36,6 +51,14 @@
   function onScroll() {
     const y = scrollY;
     const doc = document.documentElement;
+    doc.style.setProperty('--grain-y', String(-y * 0.25));
+    if (view === 'globe') {
+      // The globe stays on daylight stone; no depth readout.
+      doc.style.setProperty('--bg', BG[0]);
+      dark = false;
+      readout = { depth: 0, when: 'Surface', year: null };
+      return;
+    }
     const p = y / Math.max(1, doc.scrollHeight - innerHeight);
     const bg = bgAt(p);
     doc.style.setProperty('--bg', bg);
@@ -72,24 +95,6 @@
     addEventListener('scroll', onScroll, { passive: true });
     addEventListener('resize', onScroll);
 
-    // Bedrock rock texture.
-    const bw = bedrockCanvas.clientWidth, bh = bedrockCanvas.clientHeight;
-    const dpr = Math.min(1.5, devicePixelRatio || 1);
-    bedrockCanvas.width = bw * dpr; bedrockCanvas.height = bh * dpr;
-    const bctx = bedrockCanvas.getContext('2d');
-    bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawBedrock(bctx, { w: bw, h: bh });
-
-    const io = new IntersectionObserver(
-      ([e]) => {
-        if (e.isIntersecting && !seenCeremony) {
-          seenCeremony = true;
-          ceremony = true;
-        }
-      },
-      { threshold: 1, rootMargin: '0px 0px -30% 0px' }
-    );
-    io.observe(fossilEl);
 
     let raf;
     const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -124,9 +129,30 @@
     return () => {
       removeEventListener('scroll', onScroll);
       removeEventListener('resize', onScroll);
-      io.disconnect();
       cancelAnimationFrame(raf);
     };
+  });
+
+  // Bedrock: drawn, and watched for the ceremony, whenever the core view (re)mounts it.
+  $effect(() => {
+    if (!bedrockCanvas || !fossilEl) return;
+    const bw = bedrockCanvas.clientWidth, bh = bedrockCanvas.clientHeight;
+    const dpr = Math.min(1.5, devicePixelRatio || 1);
+    bedrockCanvas.width = bw * dpr; bedrockCanvas.height = bh * dpr;
+    const bctx = bedrockCanvas.getContext('2d');
+    bctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    drawBedrock(bctx, { w: bw, h: bh });
+    const io = new IntersectionObserver(
+      ([e]) => {
+        if (e.isIntersecting && !seenCeremony) {
+          seenCeremony = true;
+          ceremony = true;
+        }
+      },
+      { threshold: 1, rootMargin: '0px 0px -30% 0px' }
+    );
+    io.observe(fossilEl);
+    return () => io.disconnect();
   });
 
   $effect(() => {
@@ -224,11 +250,11 @@
 <header class="bar" class:dark>
   <button class="mono back" onclick={onExit}>↑ Surface</button>
   <span class="mono what">{label} · {start}–{end}</span>
-  <button class="mono skip" onclick={toBedrock}>Bedrock ↓</button>
+  {#if view === 'core'}<button class="mono skip" onclick={toBedrock}>Bedrock ↓</button>{:else}<span class="skip-gap"></span>{/if}
 </header>
 
 <!-- The sampling line: a fixed hairline across the core with a live readout. -->
-<div class="probe" class:hidden={readout.when === 'Surface'}>
+<div class="probe" class:hidden={readout.when === 'Surface' || view !== 'core'}>
   <div
     class="readout mono"
     class:dark
@@ -257,9 +283,27 @@
     <h1>{label}</h1>
     <p class="sub"><em>{core.years.length} strata. {core.estimated ? '≈' : ''}{num(core.totals.hours, 0)} hours of listening{core.estimated ? ', estimated' : ''}.<br />Every hour laid down a little more rock.</em></p>
     {#if core.source && core.source !== 'unknown'}<p class="mono src">Drilled from {core.source}</p>{/if}
-    <p class="mono cue">Descend <span aria-hidden="true">↓</span></p>
+    {#if globe}
+      <div class="views">
+        <span class="ask">Fancy another view?</span>
+        <div class="seg mono" role="group" aria-label="View">
+          <button aria-pressed={view === 'core'} onclick={() => switchView('core')}>
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><rect x="7" y="2.5" width="10" height="19" rx="1" /><path d="M7 7.5h10M7 12h10M7 16.5h10" /></svg>
+            The core
+          </button>
+          <button aria-pressed={view === 'globe'} onclick={() => switchView('globe')}>
+            <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="12" cy="12" r="9" /><ellipse cx="12" cy="12" rx="4" ry="9" /><path d="M3 12h18M5 7.5h14M5 16.5h14" /></svg>
+            The globe
+          </button>
+        </div>
+      </div>
+    {/if}
+    <p class="mono cue">{view === 'core' ? 'Descend' : 'Scroll to wind the world back'} <span aria-hidden="true">↓</span></p>
   </section>
 
+  {#if view === 'globe'}
+    <Globe />
+  {:else}
   {#each core.years as year, i (year.year)}
     <Stratum {year} index={i} count={core.years.length} {art} height={heights[i]} bind:el={sectionEls[i]} />
   {/each}
@@ -276,6 +320,7 @@
       <button class="mono again" onclick={() => (ceremony = true)}>View the specimen</button>
     </div>
   </section>
+  {/if}
   <footer class="mono foot">
     <span>Strata — your listening, carbon-dated.</span>
     <a href="https://github.com/paulbouharoun/strata" target="_blank" rel="noreferrer">Source</a>
@@ -341,11 +386,22 @@
   :global(body.dragging), :global(body.dragging) * { cursor: grabbing !important; user-select: none !important; }
   .readout .w { opacity: 0.75; font-size: 10px; }
 
-  .collar { min-height: 78svh; display: flex; flex-direction: column; justify-content: flex-end; padding: 110px 0 48px; }
+  .collar { display: flex; flex-direction: column; padding: 92px 0 36px; }
   .kicker { margin: 0 0 10px; color: var(--ink-soft); }
   h1 { font-weight: 400; font-size: clamp(54px, 11vw, 120px); line-height: 0.9; margin: 0; }
   .sub { font-size: 21px; color: var(--ink-soft); margin: 14px 0 28px; }
   .src { margin: -14px 0 24px; color: var(--ink-soft); }
+  .views { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin: -8px 0 28px; }
+  .ask { font-style: italic; font-size: 19px; color: var(--ink-soft); }
+  .seg { display: inline-flex; border: 1px solid var(--ink); }
+  .seg button {
+    display: inline-flex; align-items: center; gap: 7px; background: none; border: 0; color: var(--ink);
+    font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 8px 12px; cursor: pointer; min-height: 36px;
+  }
+  .seg button + button { border-left: 1px solid var(--ink); }
+  .seg button[aria-pressed='true'] { background: var(--ink); color: var(--bone); }
+  .seg button:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  .skip-gap { width: 1px; }
   .cue { margin: 0; animation: bob 2.4s ease-in-out infinite; }
   @keyframes bob { 50% { transform: translateY(6px); } }
 
