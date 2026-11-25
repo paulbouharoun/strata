@@ -16,10 +16,12 @@ export const clock = (ts) => new Date(ts).toLocaleTimeString('en-GB', { hour: '2
 export function eraName(year) {
   const [a, b] = year.topArtists;
   if (!a) return 'Barren Strata';
+  // "The Black Keys" → "The Black Keys Beds", not "The The Black Keys Beds".
+  const bare = (n) => n.replace(/^the\s+/i, '');
   const share = a.ms / (year.ms || 1);
-  if (share > 0.24 || !b) return `The ${a.name} Formation`;
-  if (b.ms / a.ms > 0.82) return `The ${a.name}–${b.name} Group`;
-  return `The ${a.name} Beds`;
+  if (share > 0.24 || !b) return `The ${bare(a.name)} Formation`;
+  if (b.ms / a.ms > 0.82) return `The ${bare(a.name)}–${bare(b.name)} Group`;
+  return `The ${bare(a.name)} Beds`;
 }
 
 /** Specimen-coordinate style: −1,204.3 m */

@@ -16,7 +16,7 @@
 
   async function drillSample(via) {
     error = '';
-    status = 'Extracting the sample core';
+    status = 'Extracting Paul’s core';
     try {
       const s = await samplePromise;
       const { art: sampleArt, label: l, ...c } = s;

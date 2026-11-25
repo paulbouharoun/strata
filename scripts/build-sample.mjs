@@ -34,11 +34,11 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const art = {};
 for (const { track, artist } of tracksNeedingArt(core)) {
   const k = artKey(track, artist);
-  if (!(k in cache)) {
-    let url = null;
+  if (!(k in cache) || (cache[k] && !('preview' in cache[k]))) {
+    let hit = null;
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        url = await findArtwork(track, artist);
+        hit = await findArtwork(track, artist);
         break;
       } catch (e) {
         if (!e.rateLimited) break;
@@ -46,13 +46,14 @@ for (const { track, artist } of tracksNeedingArt(core)) {
         await sleep(60_000);
       }
     }
-    let colors = null;
-    if (url) {
+    const url = hit?.url;
+    let colors = cache[k]?.colors ?? null;
+    if (url && !colors) {
       const img = await fetch(thumb(url, 64)).then((r) => r.arrayBuffer());
       const { data } = jpeg.decode(Buffer.from(img), { useTArray: true });
       colors = paletteFromPixels(data);
     }
-    cache[k] = url ? { url, colors } : null;
+    cache[k] = url ? { url, preview: hit.preview, colors } : null;
     writeFileSync(CACHE, JSON.stringify(cache, null, 1));
     console.log(`  ${url ? '✓' : '✗'} ${artist} — ${track}`);
     await sleep(3200); // iTunes allows ~20 req/min

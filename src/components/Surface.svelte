@@ -88,7 +88,7 @@
 
     <div class="actions">
       <button class="btn primary" onclick={onSample} disabled={!!status}>
-        <span>Drill the sample core</span><span aria-hidden="true">↓</span>
+        <span>Drill Paul’s core</span><span aria-hidden="true">↓</span>
       </button>
 
       <label
@@ -102,6 +102,10 @@
         <span>Bring your own core</span><span class="mono small">export</span>
       </label>
     </div>
+    <p class="whose">
+      The specimen on display is the real listening history of
+      <a href="https://paulbouharoun.com" target="_blank" rel="noreferrer">Paul Bouharoun</a>, who built Strata. Bring your own to drill yours.
+    </p>
 
     {#if status}
       <p class="status mono" role="status"><span class="drill" aria-hidden="true"></span>{status}…</p>
@@ -174,6 +178,8 @@
   }
   .tag { font-size: clamp(22px, 4vw, 30px); margin: 10px 0 22px; color: var(--ink-soft); }
   .lede { font-size: 19px; max-width: 34em; margin: 0 0 28px; }
+  .whose { font-size: 16px; color: var(--ink-soft); margin: 14px 0 0; max-width: 34em; }
+  .whose a { color: inherit; }
   .actions { display: flex; flex-wrap: wrap; gap: 12px; }
   .btn {
     display: inline-flex;

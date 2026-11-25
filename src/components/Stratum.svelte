@@ -4,6 +4,7 @@
   import { artKey } from '../lib/color.js';
   import { thumb } from '../lib/itunes.js';
   import { MONTHS, roman, num, eraName, depth } from '../lib/format.js';
+  import { player, toggle } from '../lib/player.svelte.js';
 
   let { year, index, count, art, height, el = $bindable() } = $props();
 
@@ -83,7 +84,21 @@
         {#each year.topTracks.slice(0, 3) as t, i (t.track + t.artist)}
           {@const a = art[artKey(t.track, t.artist)]}
           <li>
-            {#if a?.url}
+            {#if a?.url && a.preview}
+              {@const key = artKey(t.track, t.artist)}
+              {@const active = player.key === key}
+              <button
+                class="sleeve"
+                class:active
+                onclick={() => toggle(key, a.preview)}
+                aria-label="{active && player.playing ? 'Pause' : 'Play'} a preview of {t.track} by {t.artist}"
+                style:--p={active ? player.progress : 0}
+              >
+                <img src={thumb(a.url, 100)} alt="" width="44" height="44" loading="lazy" crossorigin="anonymous" />
+                <span class="glyph" aria-hidden="true">{#if active && player.loading}<span class="spin"></span>{:else if active && player.playing}❚❚{:else}▶{/if}</span>
+                <span class="ring" aria-hidden="true"></span>
+              </button>
+            {:else if a?.url}
               <img src={thumb(a.url, 100)} alt="" width="44" height="44" loading="lazy" crossorigin="anonymous" />
             {:else}
               <span class="noart" style:background={palette.base[i % palette.base.length]}></span>
@@ -161,6 +176,24 @@
   .tracks { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
   .tracks li { display: flex; gap: 10px; align-items: center; min-width: 0; }
   img, .noart { width: 44px; height: 44px; flex: none; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.2), 2px 3px 6px rgba(0, 0, 0, 0.2); }
+  .sleeve {
+    position: relative; flex: none; padding: 0; border: 0; background: none; cursor: pointer;
+    width: 44px; height: 44px; display: block;
+  }
+  .sleeve img { display: block; }
+  .glyph {
+    position: absolute; inset: 0; display: grid; place-items: center;
+    font-family: var(--mono); font-size: 13px; color: #f3ead8;
+    background: rgba(20, 14, 8, 0.38); opacity: 0; transition: opacity 0.2s;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+  .sleeve:hover .glyph, .sleeve:focus-visible .glyph, .sleeve.active .glyph { opacity: 1; }
+  @media (hover: none) { .glyph { opacity: 0.85; background: rgba(20, 14, 8, 0.22); } }
+  .sleeve:focus-visible { outline: 2px solid var(--brass); outline-offset: 2px; }
+  /* A brass bar fills along the sleeve's foot as the preview plays. */
+  .ring { position: absolute; left: 0; bottom: -4px; height: 2px; width: calc(var(--p) * 100%); background: var(--brass); transition: width 0.25s linear; }
+  .spin { width: 12px; height: 12px; border: 1.5px solid #f3ead8; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
   .t { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
   .title { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .by { font-size: 14px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -176,7 +209,7 @@
     .coords div { flex-direction: row; justify-content: space-between; gap: 6px; }
     .coords dd { white-space: nowrap; font-size: 9.5px; letter-spacing: 0.02em; }
     .artists li { font-size: 15px; }
-    img, .noart { width: 36px; height: 36px; }
+    img, .noart, .sleeve { width: 36px; height: 36px; }
     .title { font-size: 14.5px; }
     .by { font-size: 12.5px; }
     .first { font-size: 13.5px; }

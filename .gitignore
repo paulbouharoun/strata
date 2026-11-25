@@ -27,3 +27,4 @@ scripts/.art-cache.json
 .claude/
 .vercel
 .env*
+private/

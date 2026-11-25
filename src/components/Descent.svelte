@@ -6,6 +6,7 @@
   import { mix, luminance } from '../lib/color.js';
   import { MONTHS, num, depth, longDate } from '../lib/format.js';
   import { laminae } from '../lib/palette.js';
+  import { stop } from '../lib/player.svelte.js';
 
   let { core, art, label, onExit } = $props();
 
@@ -133,6 +134,83 @@
     return () => document.body.classList.remove('still');
   });
 
+  // ── Dragging the timeline ────────────────────────────────────────────────────
+  // 1. Grab the ruler or the core with a mouse and the rock follows the hand (touch already scrolls natively),
+  //    with a little inertia on release.
+  // 2. The depth readout is a scrubber: drag it to race through the whole core, like a scrollbar thumb.
+  let dragging = $state(false);
+  let inertia = 0;
+
+  function grab(e) {
+    if (e.pointerType !== 'mouse' || e.button !== 0) return;
+    if (!e.target.closest('.ruler, .core, .bcore')) return;
+    e.preventDefault();
+    cancelAnimationFrame(inertia);
+    const startY = e.clientY, startScroll = scrollY;
+    let lastY = e.clientY, lastT = performance.now(), v = 0;
+    dragging = true;
+    const move = (ev) => {
+      const now = performance.now();
+      v = 0.8 * v + 0.2 * ((ev.clientY - lastY) / Math.max(1, now - lastT));
+      lastY = ev.clientY; lastT = now;
+      scrollTo(0, startScroll - (ev.clientY - startY));
+    };
+    const up = () => {
+      dragging = false;
+      removeEventListener('pointermove', move);
+      removeEventListener('pointerup', up);
+      let vel = -v * 16; // px per frame
+      const glide = () => {
+        if (Math.abs(vel) < 0.5) return;
+        scrollBy(0, vel);
+        vel *= 0.94;
+        inertia = requestAnimationFrame(glide);
+      };
+      if (performance.now() - lastT < 80) inertia = requestAnimationFrame(glide);
+    };
+    addEventListener('pointermove', move);
+    addEventListener('pointerup', up);
+  }
+
+  function scrub(e) {
+    if (e.button !== 0) return;
+    e.preventDefault();
+    cancelAnimationFrame(inertia);
+    const el = e.currentTarget;
+    try { el.setPointerCapture(e.pointerId); } catch {}
+    const startY = e.clientY, startScroll = scrollY;
+    const travel = document.documentElement.scrollHeight - innerHeight;
+    // Dragging the readout across ~70% of the screen covers the whole core.
+    const ratio = travel / (innerHeight * 0.7);
+    dragging = true;
+    const move = (ev) => scrollTo(0, Math.max(0, Math.min(travel, startScroll + (ev.clientY - startY) * ratio)));
+    const up = () => {
+      dragging = false;
+      el.removeEventListener('pointermove', move);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', up);
+    };
+    el.addEventListener('pointermove', move);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', up);
+  }
+
+  function scrubKey(e) {
+    const step = { ArrowDown: 1, ArrowUp: -1, PageDown: 4, PageUp: -4 }[e.key];
+    if (!step) return;
+    e.preventDefault();
+    scrollBy({ top: step * innerHeight * 0.5, behavior: 'smooth' });
+  }
+
+  $effect(() => {
+    document.body.classList.toggle('dragging', dragging);
+  });
+
+  $effect(() => {
+    if (ceremony) stop(); // the app goes still, the music too
+  });
+  onMount(() => stop);
+
   function toBedrock() {
     fossilEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
@@ -150,15 +228,30 @@
 </header>
 
 <!-- The sampling line: a fixed hairline across the core with a live readout. -->
-<div class="probe" class:hidden={readout.when === 'Surface'} aria-hidden="true">
-  <div class="readout mono" class:dark>
+<div class="probe" class:hidden={readout.when === 'Surface'}>
+  <div
+    class="readout mono"
+    class:dark
+    role="slider"
+    tabindex="0"
+    aria-label="Depth. Drag to travel through time"
+    aria-valuemin="0"
+    aria-valuemax={Math.round(core.totals.hours)}
+    aria-valuenow={Math.round(readout.depth)}
+    aria-valuetext="{depth(readout.depth)}, {readout.when}"
+    title="Drag to travel through time"
+    onpointerdown={scrub}
+    onkeydown={scrubKey}
+  >
+    <span class="grip" aria-hidden="true">⇕</span>
     <span class="d">{depth(readout.depth)}</span>
     <span class="w">{readout.when}</span>
   </div>
   <div class="hair"></div>
 </div>
 
-<main class="descent" class:dark>
+<!-- svelte-ignore a11y_no_static_element_interactions -->
+<main class="descent" class:dark onpointerdown={grab}>
   <section class="collar">
     <p class="mono kicker">Ground level · {longDate(core.range.end)}</p>
     <h1>{label}</h1>
@@ -235,7 +328,17 @@
     border-left: 2px solid #d9b46a;
     font-variant-numeric: tabular-nums;
   }
+  .readout {
+    pointer-events: auto; cursor: ns-resize; touch-action: none; user-select: none;
+    padding-left: 22px;
+    transition: background 0.2s, transform 0.2s;
+  }
+  .readout:hover, :global(body.dragging) .readout { background: rgba(25, 20, 16, 0.95); }
+  .readout:focus-visible { outline: 2px solid #d9b46a; outline-offset: 2px; }
+  .grip { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); color: #d9b46a; font-size: 12px; }
   .readout .d { font-size: 13px; }
+  .descent :global(.ruler), .descent :global(.core), .bcore { cursor: grab; }
+  :global(body.dragging), :global(body.dragging) * { cursor: grabbing !important; user-select: none !important; }
   .readout .w { opacity: 0.75; font-size: 10px; }
 
   .collar { min-height: 78svh; display: flex; flex-direction: column; justify-content: flex-end; padding: 110px 0 48px; border-bottom: 1px solid var(--line); }

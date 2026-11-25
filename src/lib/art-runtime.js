@@ -4,7 +4,7 @@ import { artKey, paletteFromPixels } from './color.js';
 import { findArtwork, thumb } from './itunes.js';
 import { tracksNeedingArt } from './art-targets.js';
 
-const CACHE_KEY = 'strata.art.v1';
+const CACHE_KEY = 'strata.art.v2'; // v2 adds preview clips
 const loadCache = () => {
   try { return JSON.parse(localStorage.getItem(CACHE_KEY) || '{}'); } catch { return {}; }
 };
@@ -50,8 +50,8 @@ export function resolveArt(core, onArt) {
       }
       let entry = null;
       try {
-        const url = await findArtwork(track, artist);
-        if (url) entry = { url, colors: await colorsOf(url).catch(() => null) };
+        const hit = await findArtwork(track, artist);
+        if (hit) entry = { url: hit.url, preview: hit.preview, colors: await colorsOf(hit.url).catch(() => null) };
         cache[k] = entry;
         saveCache(cache);
       } catch (e) {

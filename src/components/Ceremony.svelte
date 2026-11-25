@@ -3,6 +3,7 @@
   import { artKey, hashColor } from '../lib/color.js';
   import { longDate, clock, depth } from '../lib/format.js';
   import { cardBlob } from '../lib/card.js';
+  import { player, toggle, stop } from '../lib/player.svelte.js';
   import { track } from '../lib/analytics.js';
 
   let { core, art, onClose, onSurface } = $props();
@@ -22,6 +23,7 @@
     const onKey = (e) => e.key === 'Escape' && phase >= 3 && onClose();
     addEventListener('keydown', onKey);
     return () => {
+      stop();
       ids.forEach(clearTimeout);
       removeEventListener('keydown', onKey);
     };
@@ -111,6 +113,12 @@
 
   <div class="actions">
     <button class="btn primary" onclick={download} disabled={busy}>Download your card</button>
+    {#if a?.preview}
+      {@const key = 'bedrock'}
+      <button class="btn" onclick={() => toggle(key, a.preview)} aria-pressed={player.key === key && player.playing}>
+        {player.key === key && player.playing ? '❚❚ Pause' : '▶ Hear it again'}
+      </button>
+    {/if}
     {#if canShare}
       <button class="btn" onclick={share} disabled={busy}>Share</button>
     {/if}
