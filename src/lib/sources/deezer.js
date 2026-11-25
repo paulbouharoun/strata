@@ -13,6 +13,7 @@ const H = {
   artist: ['artist', 'artiste', 'artists', 'artistes'],
   album: ['album title', 'album', "titre de l'album"],
   seconds: ['listening time', "temps d'écoute", "durée d'écoute", "duree d'ecoute", 'écoute'],
+  isrc: ['isrc'],
   date: ['date', "date d'écoute", "date de l'écoute", "date d'ecoute", "date de l'ecoute"],
 };
 
@@ -79,7 +80,8 @@ export async function parse(buf) {
     if (!ts) continue;
     const s = cols.seconds >= 0 ? num(row[cols.seconds]) : NaN;
     const known = Number.isFinite(s) && s >= 0;
-    out.push({ ts, artist, track, album: cols.album >= 0 ? (row[cols.album] || '').trim() : '', ms: known ? Math.round(s * 1000) : ESTIMATE_MS, est: !known || undefined });
+    const isrc = cols.isrc >= 0 ? String(row[cols.isrc] || '').trim().toUpperCase() : '';
+    out.push({ ts, artist, track, album: cols.album >= 0 ? (row[cols.album] || '').trim() : '', ms: known ? Math.round(s * 1000) : ESTIMATE_MS, est: !known || undefined, src: 'deezer', id: /^[A-Z]{2}[A-Z0-9]{3}\d{7}$/.test(isrc) ? isrc : undefined });
   }
   return out;
 }

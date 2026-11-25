@@ -28,7 +28,8 @@ export function parseDaily(text) {
     const ms = num(r['Play Duration Milliseconds']);
     if (!(ms > 0)) continue;
     const n = Math.max(1, parseInt(r['Play Count'], 10) || 1);
-    out.push({ ts, artist, track, album: '', ms: Math.round(ms), n, day: true });
+    const id = String(r['Track Identifier'] || '').trim();
+    out.push({ ts, artist, track, album: '', ms: Math.round(ms), n, day: true, src: 'apple', id: /^\d{5,}$/.test(id) ? id : undefined });
   }
   return out;
 }
@@ -44,7 +45,7 @@ export function parseActivity(text) {
     const ms = num(r['Play Duration Milliseconds']);
     if (Number.isNaN(ts) || !(ms > 0)) continue;
     const artist = (r['Artist Name'] || r['Container Artist Name'] || '').trim() || 'Unknown artist';
-    out.push({ ts, artist, track, album: (r['Album Name'] || '').trim(), ms: Math.round(ms) });
+    out.push({ ts, artist, track, album: (r['Album Name'] || '').trim(), ms: Math.round(ms), src: 'apple' });
   }
   return out;
 }
@@ -67,7 +68,7 @@ export function refineFirst(dailyPlays, activityPlays) {
   for (const p of dailyPlays) if (p.day && p.ts <= pick.ts && day(p.ts) === firstDay) p.ts = pick.ts + 1000;
   // Split the daily row so its earliest play carries the precise time.
   const per = Math.round(row.ms / row.n);
-  const precise = { ts: pick.ts, artist: row.artist, track: row.track, album: pick.album, ms: pick.ms || per, n: 1 };
+  const precise = { ts: pick.ts, artist: row.artist, track: row.track, album: pick.album, ms: pick.ms || per, n: 1, src: 'apple', id: row.id };
   if (row.n > 1) {
     row.n -= 1;
     row.ms = Math.max(0, row.ms - precise.ms);

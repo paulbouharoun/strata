@@ -28,3 +28,4 @@ scripts/.art-cache.json
 .vercel
 .env*
 private/
+scripts/.media-cache.json

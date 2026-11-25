@@ -13,6 +13,8 @@ import * as tidal from './sources/tidal.js';
  *   n?: number,     // plays this row stands for (Apple's daily rows); default 1
  *   day?: boolean,  // timestamp only known to the day
  *   est?: boolean,  // duration estimated (export didn't record it)
+ *   src?: 'spotify'|'apple'|'deezer'|'youtube'|'tidal',  // which service it was played on
+ *   id?: string,    // that service's track ID (Spotify ID, Apple catalogue ID, ISRC for Deezer, YouTube video ID)
  * }} Play
  */
 

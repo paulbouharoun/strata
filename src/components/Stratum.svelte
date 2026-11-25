@@ -4,7 +4,11 @@
   import { artKey } from '../lib/color.js';
   import { thumb } from '../lib/itunes.js';
   import { MONTHS, roman, num, eraName, depth } from '../lib/format.js';
-  import { player, toggle } from '../lib/player.svelte.js';
+  import { player, toggle, toggleEmbed } from '../lib/player.svelte.js';
+  import { playable } from '../lib/media.js';
+  import Embed from './Embed.svelte';
+
+  const SERVICE = { spotify: 'Spotify', apple: 'Apple Music', deezer: 'Deezer', youtube: 'YouTube Music', tidal: 'TIDAL' };
 
   let { year, index, count, art, height, el = $bindable() } = $props();
 
@@ -96,19 +100,21 @@
       <ul class="tracks">
         {#each year.topTracks.slice(0, 3) as t, i (t.track + t.artist)}
           {@const a = art[artKey(t.track, t.artist)]}
+          {@const key = artKey(t.track, t.artist)}
+          {@const mode = playable(a)}
+          {@const active = mode === 'audio' ? player.key === key : player.embed === key}
           <li>
-            {#if a?.url && a.preview}
-              {@const key = artKey(t.track, t.artist)}
-              {@const active = player.key === key}
+            {#if a?.url && mode}
               <button
                 class="sleeve"
                 class:active
-                onclick={() => toggle(key, a.preview)}
-                aria-label="{active && player.playing ? 'Pause' : 'Play'} a preview of {t.track} by {t.artist}"
-                style:--p={active ? player.progress : 0}
+                onclick={() => (mode === 'audio' ? toggle(key, a.preview) : toggleEmbed(key))}
+                aria-label="{active && (mode === 'embed' || player.playing) ? 'Stop' : 'Play'} {t.track} by {t.artist}{mode === 'embed' ? ` in ${SERVICE[a.embed.kind]}` : ''}"
+                aria-expanded={mode === 'embed' ? active : undefined}
+                style:--p={active && mode === 'audio' ? player.progress : 0}
               >
                 <img src={thumb(a.url, 100)} alt="" width="44" height="44" loading="lazy" crossorigin="anonymous" />
-                <span class="glyph" aria-hidden="true">{#if active && player.loading}<span class="spin"></span>{:else if active && player.playing}❚❚{:else}▶{/if}</span>
+                <span class="glyph" aria-hidden="true">{#if active && mode === 'audio' && player.loading}<span class="spin"></span>{:else if active && (mode === 'embed' || player.playing)}{mode === 'embed' ? '×' : '❚❚'}{:else}▶{/if}</span>
                 <span class="ring" aria-hidden="true"></span>
               </button>
             {:else if a?.url}
@@ -118,9 +124,12 @@
             {/if}
             <span class="t">
               <span class="title">{t.track}</span>
-              <span class="by">{t.artist} · <span class="mono n">{num(t.streams)}×</span></span>
+              <span class="by">{t.artist} · <span class="mono n">{num(t.streams)}×</span>{#if !mode && a?.link && t.src}{' · '}<a class="out" href={a.link} target="_blank" rel="noreferrer">{SERVICE[t.src]} ↗</a>{/if}</span>
             </span>
           </li>
+          {#if mode === 'embed' && active}
+            <li class="player"><Embed kind={a.embed.kind} id={a.embed.id} title="{t.track} by {t.artist}" /></li>
+          {/if}
         {/each}
       </ul>
 
@@ -229,6 +238,8 @@
   .ring { position: absolute; left: 0; bottom: -4px; height: 2px; width: calc(var(--p) * 100%); background: var(--brass); transition: width 0.25s linear; }
   .spin { width: 12px; height: 12px; border: 1.5px solid #f3ead8; border-top-color: transparent; border-radius: 50%; animation: spin 0.8s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
+  .tracks li.player { display: block; }
+  .out { color: inherit; font-size: 12px; }
   .t { display: flex; flex-direction: column; min-width: 0; line-height: 1.2; }
   .title { font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .by { font-size: 14px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }

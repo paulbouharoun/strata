@@ -44,7 +44,8 @@ export function aggregate(plays, source = 'unknown') {
     y.artists.set(p.artist, a);
 
     const tk = `${p.track}\u0000${p.artist}`;
-    const t = y.tracks.get(tk) || { track: p.track, artist: p.artist, album: p.album, ms: 0, streams: 0 };
+    const t = y.tracks.get(tk) || { track: p.track, artist: p.artist, album: p.album, ms: 0, streams: 0, src: p.src, id: p.id };
+    if (!t.id && p.id) { t.id = p.id; t.src = p.src; }
     t.ms += p.ms;
     t.streams += streams;
     if (!t.album && p.album) t.album = p.album;
@@ -73,7 +74,7 @@ export function aggregate(plays, source = 'unknown') {
         streams: y.streams,
         artistCount: artists.length,
         topArtists: artists.slice(0, 8).map(({ name, ms, streams }) => ({ name, ms, streams })),
-        topTracks: tracks.slice(0, 5).map(({ track, artist, album, ms, streams }) => ({ track, artist, album, ms, streams })),
+        topTracks: tracks.slice(0, 5).map(({ track, artist, album, ms, streams, src, id }) => ({ track, artist, album, ms, streams, src, id })),
         months: y.months.map((m) => {
           let top = '';
           let best = -1;
@@ -112,6 +113,8 @@ export function aggregate(plays, source = 'unknown') {
       ts: bedrock.ts,
       ms: Math.round(bedrock.ms / (bedrock.n || 1)),
       precision: bedrock.day ? 'day' : 'minute',
+      src: bedrock.src,
+      id: bedrock.id,
       depth,
     },
   };

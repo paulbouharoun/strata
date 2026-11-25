@@ -22,13 +22,14 @@ export function parse(entries) {
       if (!track || !artist) continue; // podcasts, audiobooks, local nulls
       const ts = Date.parse(e.ts);
       if (Number.isNaN(ts)) continue;
-      out.push({ ts, artist, track, album: e.master_metadata_album_album_name || '', ms: e.ms_played | 0 });
+      const id = typeof e.spotify_track_uri === 'string' ? e.spotify_track_uri.split(':')[2] : undefined;
+      out.push({ ts, artist, track, album: e.master_metadata_album_album_name || '', ms: e.ms_played | 0, src: 'spotify', id });
     } else if ('msPlayed' in e && e.trackName && e.artistName) {
       // endTime is UTC "YYYY-MM-DD HH:mm"; it marks the end of the play.
       const end = Date.parse(e.endTime.replace(' ', 'T') + ':00Z');
       if (Number.isNaN(end)) continue;
       if (e.artistName === 'Unknown Artist' && e.trackName === 'Unknown Track') continue;
-      out.push({ ts: end - (e.msPlayed | 0), artist: e.artistName, track: e.trackName, album: '', ms: e.msPlayed | 0 });
+      out.push({ ts: end - (e.msPlayed | 0), artist: e.artistName, track: e.trackName, album: '', ms: e.msPlayed | 0, src: 'spotify' });
     }
   }
   return out;

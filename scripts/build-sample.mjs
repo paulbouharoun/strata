@@ -7,7 +7,8 @@ import jpeg from 'jpeg-js';
 import { parseFiles } from '../src/lib/parse.js';
 import { aggregate } from '../src/lib/aggregate.js';
 import { paletteFromPixels, artKey } from '../src/lib/color.js';
-import { findArtwork, thumb } from '../src/lib/itunes.js';
+import { thumb } from '../src/lib/itunes.js';
+import { resolveMedia } from '../src/lib/media.js';
 import { tracksNeedingArt } from '../src/lib/art-targets.js';
 
 const [input, ...rest] = process.argv.slice(2);
@@ -27,18 +28,33 @@ const { plays, source } = await parseFiles(files, (m) => console.log('·', m));
 const core = aggregate(plays, source);
 console.log(`${plays.length} plays → ${core.years.length} strata, ${core.totals.hours.toFixed(0)} h`);
 
-const CACHE = new URL('./.art-cache.json', import.meta.url);
+const CACHE = new URL('./.media-cache.json', import.meta.url);
 const cache = existsSync(CACHE) ? JSON.parse(readFileSync(CACHE, 'utf8')) : {};
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+const net = {
+  // Node has no CORS, so Deezer's JSONP is just JSON here.
+  fetchJson: async (url) => {
+    const r = await fetch(url, { headers: { 'User-Agent': 'strata-sample-builder' } });
+    if (r.status === 403 || r.status === 429) throw Object.assign(new Error('rate limited'), { rateLimited: true });
+    if (!r.ok) throw new Error(String(r.status));
+    return r.json();
+  },
+};
+
+async function colorsOf(url) {
+  const img = await fetch(thumb(url, 64)).then((r) => r.arrayBuffer());
+  const { data } = jpeg.decode(Buffer.from(img), { useTArray: true, maxMemoryUsageInMB: 64 });
+  return paletteFromPixels(data);
+}
 
 const art = {};
-for (const { track, artist } of tracksNeedingArt(core)) {
-  const k = artKey(track, artist);
-  if (!(k in cache) || (cache[k] && !('preview' in cache[k]))) {
-    let hit = null;
+for (const t of tracksNeedingArt(core)) {
+  const k = `${t.src || 'apple'}:${t.id || artKey(t.track, t.artist)}`;
+  if (!(k in cache)) {
+    let m = null;
     for (let attempt = 0; attempt < 4; attempt++) {
       try {
-        hit = await findArtwork(track, artist);
+        m = await resolveMedia(t, net);
         break;
       } catch (e) {
         if (!e.rateLimited) break;
@@ -46,19 +62,14 @@ for (const { track, artist } of tracksNeedingArt(core)) {
         await sleep(60_000);
       }
     }
-    const url = hit?.url;
-    let colors = cache[k]?.colors ?? null;
-    if (url && !colors) {
-      const img = await fetch(thumb(url, 64)).then((r) => r.arrayBuffer());
-      const { data } = jpeg.decode(Buffer.from(img), { useTArray: true });
-      colors = paletteFromPixels(data);
-    }
-    cache[k] = url ? { url, preview: hit.preview, colors } : null;
+    if (m?.url) m.colors = await colorsOf(m.url).catch(() => null);
+    cache[k] = m;
     writeFileSync(CACHE, JSON.stringify(cache, null, 1));
-    console.log(`  ${url ? '✓' : '✗'} ${artist} — ${track}`);
-    await sleep(3200); // iTunes allows ~20 req/min
+    const how = m?.preview ? 'clip' : m?.embed ? `${m.embed.kind} player` : 'no preview';
+    console.log(`  ${m?.url ? '✓' : '✗'} ${t.artist} — ${t.track} (${t.src || '?'}, ${how})`);
+    await sleep(!t.src || t.src === 'apple' ? 3200 : 300);
   }
-  if (cache[k]) art[k] = cache[k];
+  if (cache[k]) art[artKey(t.track, t.artist)] = cache[k];
 }
 
 writeFileSync(new URL('../public/sample.json', import.meta.url), JSON.stringify({ label, ...core, art }));

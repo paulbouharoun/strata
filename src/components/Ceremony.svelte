@@ -3,7 +3,9 @@
   import { artKey, hashColor } from '../lib/color.js';
   import { longDate, clock, depth } from '../lib/format.js';
   import { cardBlob } from '../lib/card.js';
-  import { player, toggle, stop } from '../lib/player.svelte.js';
+  import { player, toggle, toggleEmbed, stop } from '../lib/player.svelte.js';
+  import { playable } from '../lib/media.js';
+  import Embed from './Embed.svelte';
   import { track } from '../lib/analytics.js';
 
   let { core, art, onClose, onSurface } = $props();
@@ -113,11 +115,18 @@
 
   <div class="actions">
     <button class="btn primary" onclick={download} disabled={busy}>Download your card</button>
-    {#if a?.preview}
+    {#if playable(a) === 'audio'}
       {@const key = 'bedrock'}
       <button class="btn" onclick={() => toggle(key, a.preview)} aria-pressed={player.key === key && player.playing}>
         {player.key === key && player.playing ? '❚❚ Pause' : '▶ Hear it again'}
       </button>
+    {:else if playable(a) === 'embed'}
+      <button class="btn" onclick={() => toggleEmbed('bedrock')} aria-expanded={player.embed === 'bedrock'}>
+        {player.embed === 'bedrock' ? '× Close player' : '▶ Hear it again'}
+      </button>
+      {#if player.embed === 'bedrock'}
+        <div class="bplayer"><Embed kind={a.embed.kind} id={a.embed.id} title="{b.track} by {b.artist}" /></div>
+      {/if}
     {/if}
     {#if canShare}
       <button class="btn" onclick={share} disabled={busy}>Share</button>
@@ -187,6 +196,7 @@
   .btn.primary { background: #d9b46a; border-color: #d9b46a; color: #1a140e; }
   .btn.ghost { border-color: rgba(236, 226, 207, 0.25); color: rgba(236, 226, 207, 0.75); }
   .btn:disabled { opacity: 0.6; cursor: progress; }
+  .bplayer { flex-basis: 100%; max-width: 420px; }
   .note { flex-basis: 100%; text-align: center; margin: 2px 0 0; min-height: 1.2em; color: rgba(236, 226, 207, 0.6); }
 
   @media (max-width: 560px) {

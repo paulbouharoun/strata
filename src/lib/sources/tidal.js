@@ -21,7 +21,7 @@ export function parse(text) {
     const tz = (r.time_zone || '').trim();
     const ts = zonedToUtc(+m[3], m[2] - 1, +m[1], +m[4], +m[5], tz && tz.toLowerCase() !== 'null' ? tz : '');
     const ms = num(r.stream_duration_ms);
-    out.push({ ts, artist: primaryArtist(r.artist_name), track: r.track_title.trim(), album: '', ms: ms > 0 ? Math.round(ms) : 0 });
+    out.push({ ts, artist: primaryArtist(r.artist_name), track: r.track_title.trim(), album: '', ms: ms > 0 ? Math.round(ms) : 0, src: 'tidal' });
   }
   return out;
 }

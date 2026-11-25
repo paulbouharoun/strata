@@ -1,5 +1,6 @@
 // One shared audio element: starting a preview stops whatever was playing.
-export const player = $state({ key: null, playing: false, progress: 0, loading: false });
+// `embed` is the key of an open Spotify/YouTube player (they play inside their own iframe).
+export const player = $state({ key: null, playing: false, progress: 0, loading: false, embed: null });
 
 let audio = null;
 
@@ -30,6 +31,7 @@ function ensure() {
 }
 
 export function toggle(key, src) {
+  player.embed = null;
   const a = ensure();
   if (player.key === key) {
     if (a.paused) a.play().catch(() => {});
@@ -48,9 +50,22 @@ export function toggle(key, src) {
 }
 
 export function stop() {
+  player.embed = null;
   if (!audio) return;
   audio.pause();
   player.key = null;
   player.playing = false;
   player.progress = 0;
+}
+
+/** Open (or close, if already open) a service's own embedded player. Stops any audio clip. */
+export function toggleEmbed(key) {
+  if (audio) audio.pause();
+  player.key = null;
+  player.embed = player.embed === key ? null : key;
+}
+
+export function stopAll() {
+  stop();
+  player.embed = null;
 }

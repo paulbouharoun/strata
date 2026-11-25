@@ -8,6 +8,7 @@ export const name = 'YouTube Music';
 
 const ESTIMATE_MS = 210_000;
 const VERB = /^(Watched|Listened to|A regardé|A écouté|Visto|Has visto|Angesehen|Assistiu|Hai guardato|Bekeken|Обнаружено|Просмотрено)\s+/i;
+const videoId = (url) => String(url || '').match(/[?&]v=([\w-]{11})/)?.[1];
 const cleanArtist = (s) => s.replace(/\s+-\s+Topic$/i, '').replace(/VEVO$/i, '').trim();
 
 export const looksLikeJson = (first) => first && typeof first === 'object' && 'header' in first && 'time' in first;
@@ -20,7 +21,7 @@ export function parseJson(entries) {
     if (!isMusic || !e.subtitles?.[0]?.name || !e.title) continue;
     const ts = Date.parse(e.time);
     if (Number.isNaN(ts)) continue;
-    out.push({ ts, artist: cleanArtist(e.subtitles[0].name), track: e.title.replace(VERB, '').trim(), album: '', ms: ESTIMATE_MS, est: true });
+    out.push({ ts, artist: cleanArtist(e.subtitles[0].name), track: e.title.replace(VERB, '').trim(), album: '', ms: ESTIMATE_MS, est: true, src: 'youtube', id: videoId(e.titleUrl) });
   }
   return out;
 }
@@ -63,7 +64,8 @@ export function parseHtml(html) {
     const parts = body.split(/<br\s*\/?>/).map((p) => decodeEntities(p.replace(/<[^>]+>/g, '')).trim()).filter(Boolean);
     const ts = parseTakeoutDate(parts[parts.length - 1] || '');
     if (Number.isNaN(ts)) continue;
-    out.push({ ts, artist: cleanArtist(links[1]), track: links[0], album: '', ms: ESTIMATE_MS, est: true });
+    const href = decodeEntities(body.match(/<a href="([^"]+)"/)?.[1] || '');
+    out.push({ ts, artist: cleanArtist(links[1]), track: links[0], album: '', ms: ESTIMATE_MS, est: true, src: 'youtube', id: videoId(href) });
   }
   return out;
 }
